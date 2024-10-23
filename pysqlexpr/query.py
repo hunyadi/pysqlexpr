@@ -4,6 +4,10 @@ pysqlexpr: Expressive SQL for Python
 :see: https://github.com/hunyadi/pysqlexpr
 """
 
+from typing import override
+
+from .indentation import Printable, indent
+
 
 class Column:
     __slots__ = ("expr", "name")
@@ -22,7 +26,7 @@ class Column:
             return self.expr
 
 
-class ColumnList:
+class ColumnList(Printable):
     __slots__ = ("columns",)
 
     columns: list[Column]
@@ -36,12 +40,31 @@ class ColumnList:
     def extend(self, columns: list[Column]) -> None:
         self.columns.extend(columns)
 
-    def __str__(self) -> str:
+    @override
+    def packed(self) -> str:
+        "Produces a compact single-line representation of the column list."
+
+        return ", ".join(str(c) for c in self.columns)
+
+    @override
+    def spacious(self) -> str:
+        "Produces an expanded multi-line representation of the column list."
+
         return ",\n".join(str(c) for c in self.columns)
 
 
-class QueryExpr:
-    pass
+class QueryExpr(Printable):
+    @override
+    def packed(self) -> str:
+        "Produces a compact single-line representation of the query expression."
+
+        return str(self)
+
+    @override
+    def spacious(self) -> str:
+        "Produces an expanded multi-line representation of the query expression."
+
+        return str(self)
 
 
 class FromExpr(QueryExpr):
@@ -50,20 +73,33 @@ class FromExpr(QueryExpr):
     def __init__(self, expr: str) -> None:
         self.expr = expr
 
-    def __str__(self) -> str:
-        return f"{self.expr}"
+    @override
+    def packed(self) -> str:
+        return self.expr
+
+    @override
+    def spacious(self) -> str:
+        return self.expr
 
 
 class Query(QueryExpr):
     source: QueryExpr
     columns: ColumnList
 
-    def __init__(self, source: QueryExpr, columns: ColumnList) -> None:
+    def __init__(self, source: QueryExpr, columns: list[Column]) -> None:
         self.source = source
-        self.columns = columns
+        self.columns = ColumnList(*columns)
 
-    def __str__(self) -> str:
-        source = (
-            f"(\n{self.source}\n)" if isinstance(self.source, Query) else self.source
-        )
-        return f"SELECT\n{self.columns}\nFROM\n{source}"
+    @override
+    def packed(self) -> str:
+        source = self.source.packed()
+        if isinstance(self.source, Query):
+            source = f"({source})"
+        return f"SELECT {self.columns.packed()} FROM {source}"
+
+    @override
+    def spacious(self) -> str:
+        source = self.source.spacious()
+        if isinstance(self.source, Query):
+            source = f"(\n{source}\n)"
+        return f"SELECT\n{indent(self.columns.spacious())}\nFROM\n{indent(source)}"

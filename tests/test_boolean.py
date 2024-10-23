@@ -28,6 +28,24 @@ class TestBoolean(unittest.TestCase):
         self.assertSqlEqual(E("a") & E("b") | E("c"), "((a AND b) OR c)")
         self.assertSqlEqual(E("a") | E("b") & E("c"), "(a OR (b AND c))")
 
+        # spacious output
+        self.assertEqual(
+            (E("a") | E("b") & E("c")).spacious(),
+            "\n".join(
+                [
+                    "(",
+                    "    a",
+                    "OR",
+                    "    (",
+                    "        b",
+                    "    AND",
+                    "        c",
+                    "    )",
+                    ")",
+                ]
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

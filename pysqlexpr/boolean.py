@@ -5,20 +5,12 @@ pysqlexpr: Expressive SQL for Python
 """
 
 import abc
-import textwrap
-from typing import ClassVar, Iterable, NoReturn, final
+from typing import ClassVar, Iterable, NoReturn, final, override
 
-MAX_LEN = 120
-PREFIX = "    "
+from .indentation import Printable, indent
 
 
-def indent(text: str) -> str:
-    "Adds a single level of indentation to the beginning of each line of text."
-
-    return textwrap.indent(text, PREFIX)
-
-
-class BoolExpr(abc.ABC):
+class BoolExpr(abc.ABC, Printable):
     "A Boolean expression that yields TRUE, FALSE or NULL."
 
     __slots__ = ()
@@ -28,12 +20,6 @@ class BoolExpr(abc.ABC):
 
     @abc.abstractmethod
     def __or__(self, op: "BoolExpr") -> "BoolExpr": ...
-
-    def collapsed(self) -> str:
-        return str(self)
-
-    def expanded(self) -> str:
-        return str(self)
 
     def __bool__(self) -> NoReturn:
         raise TypeError(
@@ -52,6 +38,7 @@ class ReturnsBool(BoolExpr):
     def __init__(self, expr: str) -> None:
         self.expr = expr
 
+    @override
     def __and__(self, op: BoolExpr) -> "ConjExpr":
         ops: list[BoolExpr] = []
         ops.append(self)
@@ -67,6 +54,7 @@ class ReturnsBool(BoolExpr):
         else:
             raise NotImplementedError("expected: conjunction or disjunction")
 
+    @override
     def __or__(self, op: BoolExpr) -> "DisjExpr":
         ops: list[BoolExpr] = []
         ops.append(self)
@@ -82,7 +70,12 @@ class ReturnsBool(BoolExpr):
         else:
             raise NotImplementedError("expected: conjunction or disjunction")
 
-    def __str__(self) -> str:
+    @override
+    def packed(self) -> str:
+        return self.expr
+
+    @override
+    def spacious(self) -> str:
         return self.expr
 
 
@@ -113,16 +106,27 @@ class LogicalExpr(BoolExpr):
         else:
             return self
 
-    def _logical_to_str(self, sep: str) -> str:
+    def _check(self) -> None:
+        "Verifies if the logical expression is valid."
+
         if len(self.operands) == 0:
             raise ValueError(f"empty {self.name}")
 
-        expr = f" {sep} ".join(op.collapsed() for op in self.operands)
-        if len(expr) < MAX_LEN:
-            return f"({expr})"
+    def _packed(self, sep: str) -> str:
+        "Produces a compact single-line representation of the logical expression."
 
-        expr = f"\n{sep}\n".join(indent(op.expanded()) for op in self.operands)
-        return f"(\n{expr}\n)"
+        self._check()
+        return "(" + f" {sep} ".join(op.packed() for op in self.operands) + ")"
+
+    def _spacious(self, sep: str) -> str:
+        "Produces an expanded multi-line representation of the logical expression."
+
+        self._check()
+        return (
+            "(\n"
+            + f"\n{sep}\n".join(indent(op.spacious()) for op in self.operands)
+            + "\n)"
+        )
 
 
 @final
@@ -131,6 +135,7 @@ class ConjExpr(LogicalExpr):
 
     name: ClassVar[str] = "conjunction"
 
+    @override
     def __and__(self, op: BoolExpr) -> "ConjExpr":
         ops: list[BoolExpr] = []
         ops.extend(self.operands)
@@ -146,11 +151,17 @@ class ConjExpr(LogicalExpr):
         else:
             raise NotImplementedError("expected: conjunction or disjunction")
 
+    @override
     def __or__(self, op: BoolExpr) -> "DisjExpr":
         return DisjExpr([self, op])
 
-    def __str__(self) -> str:
-        return self._logical_to_str("AND")
+    @override
+    def packed(self) -> str:
+        return self._packed("AND")
+
+    @override
+    def spacious(self) -> str:
+        return self._spacious("AND")
 
 
 @final
@@ -159,9 +170,11 @@ class DisjExpr(LogicalExpr):
 
     name: ClassVar[str] = "disjunction"
 
+    @override
     def __and__(self, op: BoolExpr) -> "ConjExpr":
         return ConjExpr([self, op])
 
+    @override
     def __or__(self, op: BoolExpr) -> "DisjExpr":
         ops: list[BoolExpr] = []
         ops.extend(self.operands)
@@ -177,5 +190,10 @@ class DisjExpr(LogicalExpr):
         else:
             raise NotImplementedError("expected: conjunction or disjunction")
 
-    def __str__(self) -> str:
-        return self._logical_to_str("OR")
+    @override
+    def packed(self) -> str:
+        return self._packed("OR")
+
+    @override
+    def spacious(self) -> str:
+        return self._spacious("OR")
