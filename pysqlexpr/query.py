@@ -4,9 +4,8 @@ pysqlexpr: Expressive SQL for Python
 :see: https://github.com/hunyadi/pysqlexpr
 """
 
-from typing import override
-
 from .indentation import Printable, indent
+from .typing import override
 
 
 class Column:

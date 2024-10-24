@@ -5,9 +5,10 @@ pysqlexpr: Expressive SQL for Python
 """
 
 import abc
-from typing import ClassVar, Iterable, NoReturn, final, override
+from typing import ClassVar, Iterable, NoReturn, final
 
 from .indentation import Printable, indent
+from .typing import override
 
 
 class BoolExpr(abc.ABC, Printable):
