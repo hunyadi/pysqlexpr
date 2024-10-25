@@ -10,40 +10,41 @@ from pysqlexpr.boolean import BoolExpr, ReturnsBool
 
 
 class TestBoolean(unittest.TestCase):
-    def assertSqlEqual(self, expr: BoolExpr, text: str) -> None:
-        self.assertEqual(str(expr), text)
+    def assertPackedEqual(self, expr: BoolExpr, text: str) -> None:
+        self.assertEqual(expr.packed(), text)
+
+    def assertSpaciousEqual(self, expr: BoolExpr, lines: list[str]) -> None:
+        self.assertEqual(expr.spacious(), "\n".join(lines))
 
     def test_logical(self) -> None:
         E = ReturnsBool
 
         # binary expressions
-        self.assertSqlEqual(E("a") & E("b"), "(a AND b)")
-        self.assertSqlEqual(E("a") | E("b"), "(a OR b)")
+        self.assertPackedEqual(E("a") & E("b"), "(a AND b)")
+        self.assertPackedEqual(E("a") | E("b"), "(a OR b)")
 
         # homogeneous expressions
-        self.assertSqlEqual(E("a") & E("b") & E("c"), "(a AND b AND c)")
-        self.assertSqlEqual(E("a") | E("b") | E("c"), "(a OR b OR c)")
+        self.assertPackedEqual(E("a") & E("b") & E("c"), "(a AND b AND c)")
+        self.assertPackedEqual(E("a") | E("b") | E("c"), "(a OR b OR c)")
 
         # heterogeneous expressions
-        self.assertSqlEqual(E("a") & E("b") | E("c"), "((a AND b) OR c)")
-        self.assertSqlEqual(E("a") | E("b") & E("c"), "(a OR (b AND c))")
+        self.assertPackedEqual(E("a") & E("b") | E("c"), "((a AND b) OR c)")
+        self.assertPackedEqual(E("a") | E("b") & E("c"), "(a OR (b AND c))")
 
         # spacious output
-        self.assertEqual(
-            (E("a") | E("b") & E("c")).spacious(),
-            "\n".join(
-                [
-                    "(",
-                    "    a",
-                    "OR",
-                    "    (",
-                    "        b",
-                    "    AND",
-                    "        c",
-                    "    )",
-                    ")",
-                ]
-            ),
+        self.assertSpaciousEqual(
+            E("a") | E("b") & E("c"),
+            [
+                "(",
+                "    a",
+                "OR",
+                "    (",
+                "        b",
+                "    AND",
+                "        c",
+                "    )",
+                ")",
+            ],
         )
 
 

@@ -86,6 +86,7 @@ class LogicalExpr(BoolExpr):
     __slots__ = ("operands",)
 
     name: ClassVar[str] = "logical expression"
+    operator: ClassVar[str] = "[op]"
 
     operands: list[BoolExpr]
 
@@ -113,19 +114,21 @@ class LogicalExpr(BoolExpr):
         if len(self.operands) == 0:
             raise ValueError(f"empty {self.name}")
 
-    def _packed(self, sep: str) -> str:
+    def packed(self) -> str:
         "Produces a compact single-line representation of the logical expression."
 
         self._check()
-        return "(" + f" {sep} ".join(op.packed() for op in self.operands) + ")"
+        return (
+            "(" + f" {self.operator} ".join(op.packed() for op in self.operands) + ")"
+        )
 
-    def _spacious(self, sep: str) -> str:
+    def spacious(self) -> str:
         "Produces an expanded multi-line representation of the logical expression."
 
         self._check()
         return (
             "(\n"
-            + f"\n{sep}\n".join(indent(op.spacious()) for op in self.operands)
+            + f"\n{self.operator}\n".join(indent(op.spacious()) for op in self.operands)
             + "\n)"
         )
 
@@ -135,6 +138,7 @@ class ConjExpr(LogicalExpr):
     "An expression that yields the Boolean result of a conjunction (logical AND)."
 
     name: ClassVar[str] = "conjunction"
+    operator: ClassVar[str] = "AND"
 
     @override
     def __and__(self, op: BoolExpr) -> "ConjExpr":
@@ -156,20 +160,13 @@ class ConjExpr(LogicalExpr):
     def __or__(self, op: BoolExpr) -> "DisjExpr":
         return DisjExpr([self, op])
 
-    @override
-    def packed(self) -> str:
-        return self._packed("AND")
-
-    @override
-    def spacious(self) -> str:
-        return self._spacious("AND")
-
 
 @final
 class DisjExpr(LogicalExpr):
     "An expression that yields the Boolean result of a disjunction (logical OR)."
 
     name: ClassVar[str] = "disjunction"
+    operator: ClassVar[str] = "OR"
 
     @override
     def __and__(self, op: BoolExpr) -> "ConjExpr":
@@ -190,11 +187,3 @@ class DisjExpr(LogicalExpr):
             return DisjExpr(ops)
         else:
             raise NotImplementedError("expected: conjunction or disjunction")
-
-    @override
-    def packed(self) -> str:
-        return self._packed("OR")
-
-    @override
-    def spacious(self) -> str:
-        return self._spacious("OR")
