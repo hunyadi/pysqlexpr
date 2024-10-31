@@ -19,6 +19,26 @@ class TestBoolean(unittest.TestCase):
     def assertSpaciousEqual(self, expr: BoolExpr, lines: list[str]) -> None:
         self.assertEqual(expr.spacious(), "\n".join(lines))
 
+    def test_equal(self) -> None:
+        E = ReturnsBool
+        self.assertEqual(E("a"), E("a"))
+        self.assertEqual(E("a") & E("b"), E("a") & E("b"))
+        self.assertNotEqual(E("a"), E("b"))
+        self.assertNotEqual(E("a") & E("b"), E("a") | E("b"))
+        self.assertNotEqual(E("a") & E("a"), E("a") & E("b"))
+
+    def test_hash(self) -> None:
+        E = ReturnsBool
+        s: set[BoolExpr] = set()
+        s.add(E("a") & E("a"))
+        s.add(E("a") | E("a"))
+        s.add(E("a") & E("b"))
+        s.add(E("a") | E("b"))
+        self.assertIn(E("a") & E("a"), s)
+        self.assertIn(E("a") | E("a"), s)
+        self.assertIn(E("a") & E("b"), s)
+        self.assertIn(E("a") | E("b"), s)
+
     def test_logical(self) -> None:
         E = ReturnsBool
 

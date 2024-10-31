@@ -17,11 +17,28 @@ class TestQuery(unittest.TestCase):
     def assertSpaciousEqual(self, expr: SourceExpr, lines: list[str]) -> None:
         self.assertEqual(expr.spacious(), "\n".join(lines))
 
+    def test_hash(self) -> None:
+        s: set[Column] = set()
+        s.add(Column("a", name="alias"))
+        s.add(Column("b"))
+        s.add(Column("c"))
+        self.assertIn(Column("a", name="alias"), s)
+        self.assertIn(Column("b"), s)
+        self.assertIn(Column("c"), s)
+
     def test_where(self) -> None:
         query = Query(
             source=FromExpr("source"),
             columns=[Column("a", name="alias"), Column("b"), Column("c")],
             where=ReturnsBool("a > 1") & ReturnsBool("b IS NOT NULL"),
+        )
+        self.assertEqual(
+            query,
+            Query(
+                source=FromExpr("source"),
+                columns=[Column("a", name="alias"), Column("b"), Column("c")],
+                where=ReturnsBool("a > 1") & ReturnsBool("b IS NOT NULL"),
+            ),
         )
         self.assertPackedEqual(
             query, "SELECT a AS alias, b, c FROM source WHERE (a > 1 AND b IS NOT NULL)"

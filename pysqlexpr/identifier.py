@@ -30,6 +30,16 @@ class Identifier:
         self.identifier = identifier
         self.path = path
 
+    def __eq__(self, op: object) -> bool:
+        return (
+            isinstance(op, Identifier)
+            and self.identifier == op.identifier
+            and self.path == op.path
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.identifier, self.path))
+
     @property
     def raw(self) -> str:
         return self.identifier

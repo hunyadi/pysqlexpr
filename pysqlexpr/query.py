@@ -4,7 +4,7 @@ pysqlexpr: Expressive SQL for Python
 :see: https://github.com/hunyadi/pysqlexpr
 """
 
-from typing import ClassVar
+from typing import ClassVar, Iterable
 
 from .boolean import BoolExpr
 from .indentation import Printable, indent
@@ -21,6 +21,12 @@ class Column:
         self.expr = expr
         self.name = name
 
+    def __eq__(self, op: object) -> bool:
+        return isinstance(op, Column) and self.expr == op.expr and self.name == op.name
+
+    def __hash__(self) -> int:
+        return hash((self.expr, self.name))
+
     def __str__(self) -> str:
         if self.name:
             return f"{self.expr} AS {self.name}"
@@ -31,16 +37,16 @@ class Column:
 class ColumnList(Printable):
     __slots__ = ("columns",)
 
-    columns: list[Column]
+    columns: tuple[Column, ...]
 
-    def __init__(self, *columns: Column) -> None:
-        self.columns = list(columns)
+    def __init__(self, columns: Iterable[Column]) -> None:
+        self.columns = tuple(columns)
 
-    def append(self, column: Column) -> None:
-        self.columns.append(column)
+    def __eq__(self, op: object) -> bool:
+        return isinstance(op, ColumnList) and self.columns == op.columns
 
-    def extend(self, columns: list[Column]) -> None:
-        self.columns.extend(columns)
+    def __hash__(self) -> int:
+        return hash(self.columns)
 
     @override
     def packed(self) -> str:
@@ -70,6 +76,14 @@ class FromExpr(SourceExpr):
     def __init__(self, expr: str | SourceExpr, *, name: str | None = None) -> None:
         self.expr = expr
         self.name = name
+
+    def __eq__(self, op: object) -> bool:
+        return (
+            isinstance(op, FromExpr) and self.expr == op.expr and self.name == op.name
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.expr, self.name))
 
     @override
     def packed(self) -> str:
@@ -117,6 +131,18 @@ class JoinExpr(SourceExpr):
         self.left = left
         self.right = right
         self.condition = condition
+
+    def __eq__(self, op: object) -> bool:
+        return (
+            isinstance(op, JoinExpr)
+            and self.operator == op.operator
+            and self.left == op.left
+            and self.right == op.right
+            and self.condition == op.condition
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.operator, self.left, self.right, self.condition))
 
     @override
     def packed(self) -> str:
@@ -173,23 +199,40 @@ class LateralJoin(JoinExpr):
 class Query(SourceExpr):
     "A query or sub-query that yields a table result."
 
+    __slots__ = ("source", "columns", "where", "group_by")
+
     source: SourceExpr
     columns: ColumnList
-    where: BoolExpr | None = None
-    group_by: list[str] | None = None
+    where: BoolExpr | None
+    group_by: tuple[str, ...] | None
 
     def __init__(
         self,
         source: SourceExpr,
-        columns: list[Column],
+        columns: Iterable[Column],
         *,
         where: BoolExpr | None = None,
-        group_by: list[str] | None = None,
+        group_by: Iterable[str] | None = None,
     ) -> None:
         self.source = source
-        self.columns = ColumnList(*columns)
+        self.columns = ColumnList(columns)
         self.where = where
-        self.group_by = group_by
+        if group_by is not None:
+            self.group_by = tuple(group_by)
+        else:
+            self.group_by = None
+
+    def __eq__(self, op: object) -> bool:
+        return (
+            isinstance(op, Query)
+            and self.source == op.source
+            and self.columns == op.columns
+            and self.where == op.where
+            and self.group_by == op.group_by
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.source, self.columns, self.where, self.group_by))
 
     @override
     def packed(self) -> str:

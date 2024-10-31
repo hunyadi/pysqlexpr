@@ -39,6 +39,12 @@ class ReturnsBool(BoolExpr):
     def __init__(self, expr: str) -> None:
         self.expr = expr
 
+    def __eq__(self, op: object) -> bool:
+        return isinstance(op, ReturnsBool) and self.expr == op.expr
+
+    def __hash__(self) -> int:
+        return hash(self.expr)
+
     @override
     def __and__(self, op: BoolExpr) -> "ConjExpr":
         ops: list[BoolExpr] = []
@@ -88,19 +94,23 @@ class LogicalExpr(BoolExpr):
     name: ClassVar[str] = "logical expression"
     operator: ClassVar[str] = "[op]"
 
-    operands: list[BoolExpr]
+    operands: tuple[BoolExpr, ...]
 
-    def __init__(self, ops: list[BoolExpr] | None = None) -> None:
-        self.operands = ops or []
+    def __init__(self, ops: Iterable[BoolExpr]) -> None:
+        self.operands = tuple(ops)
+
+    def __eq__(self, op: object) -> bool:
+        return (
+            isinstance(op, LogicalExpr)
+            and self.operator == op.operator
+            and self.operands == op.operands
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.operator, self.operands))
 
     def __len__(self) -> int:
         return len(self.operands)
-
-    def append(self, op: BoolExpr) -> None:
-        self.operands.append(op)
-
-    def extend(self, ops: Iterable[BoolExpr]) -> None:
-        self.operands.extend(ops)
 
     def unwrap(self) -> BoolExpr:
         if len(self.operands) == 1:
