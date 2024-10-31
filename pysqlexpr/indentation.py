@@ -30,9 +30,19 @@ class Printable:
         "Produces an expanded multi-line representation of the object."
         ...
 
-    def __str__(self) -> str:
+    def display(self) -> tuple[bool, str]:
+        """
+        Chooses an optimal representation of the object.
+
+        :returns: A tuple of whether the output is packed, and the formatted text.
+        """
+
         text = self.packed()
         if len(text) < _MAX_LEN:
-            return text
+            return True, text
         else:
-            return self.spacious()
+            return False, self.spacious()
+
+    def __str__(self) -> str:
+        _, text = self.display()
+        return text

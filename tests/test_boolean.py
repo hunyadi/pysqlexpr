@@ -10,6 +10,9 @@ from pysqlexpr.boolean import BoolExpr, ReturnsBool
 
 
 class TestBoolean(unittest.TestCase):
+    def assertDisplayEqual(self, expr: BoolExpr, text: str) -> None:
+        self.assertEqual(str(expr), text)
+
     def assertPackedEqual(self, expr: BoolExpr, text: str) -> None:
         self.assertEqual(expr.packed(), text)
 
@@ -30,6 +33,10 @@ class TestBoolean(unittest.TestCase):
         # heterogeneous expressions
         self.assertPackedEqual(E("a") & E("b") | E("c"), "((a AND b) OR c)")
         self.assertPackedEqual(E("a") | E("b") & E("c"), "(a OR (b AND c))")
+
+        # optimal output
+        self.assertDisplayEqual(E("a") & E("b") | E("c"), "((a AND b) OR c)")
+        self.assertDisplayEqual(E("a") | E("b") & E("c"), "(a OR (b AND c))")
 
         # spacious output
         self.assertSpaciousEqual(

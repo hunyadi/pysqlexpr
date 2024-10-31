@@ -17,18 +17,43 @@ class TestQuery(unittest.TestCase):
     def assertSpaciousEqual(self, expr: SourceExpr, lines: list[str]) -> None:
         self.assertEqual(expr.spacious(), "\n".join(lines))
 
-    def test_query(self) -> None:
+    def test_where(self) -> None:
         query = Query(
             source=FromExpr("source"),
-            columns=[Column("a", name="a"), Column("b"), Column("c")],
-            group_by=["a", "b"],
+            columns=[Column("a", name="alias"), Column("b"), Column("c")],
+            where=ReturnsBool("a > 1") & ReturnsBool("b IS NOT NULL"),
         )
-        self.assertPackedEqual(query, "SELECT a AS a, b, c FROM source GROUP BY a, b")
+        self.assertPackedEqual(
+            query, "SELECT a AS alias, b, c FROM source WHERE (a > 1 AND b IS NOT NULL)"
+        )
         self.assertSpaciousEqual(
             query,
             [
                 "SELECT",
-                "    a AS a,",
+                "    a AS alias,",
+                "    b,",
+                "    c",
+                "FROM",
+                "    source",
+                "WHERE",
+                "    (a > 1 AND b IS NOT NULL)",
+            ],
+        )
+
+    def test_group_by(self) -> None:
+        query = Query(
+            source=FromExpr("source"),
+            columns=[Column("a", name="alias"), Column("b"), Column("c")],
+            group_by=["a", "b"],
+        )
+        self.assertPackedEqual(
+            query, "SELECT a AS alias, b, c FROM source GROUP BY a, b"
+        )
+        self.assertSpaciousEqual(
+            query,
+            [
+                "SELECT",
+                "    a AS alias,",
                 "    b,",
                 "    c",
                 "FROM",

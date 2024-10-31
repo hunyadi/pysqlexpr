@@ -175,6 +175,7 @@ class Query(SourceExpr):
 
     source: SourceExpr
     columns: ColumnList
+    where: BoolExpr | None = None
     group_by: list[str] | None = None
 
     def __init__(
@@ -182,10 +183,12 @@ class Query(SourceExpr):
         source: SourceExpr,
         columns: list[Column],
         *,
+        where: BoolExpr | None = None,
         group_by: list[str] | None = None,
     ) -> None:
         self.source = source
         self.columns = ColumnList(*columns)
+        self.where = where
         self.group_by = group_by
 
     @override
@@ -193,19 +196,27 @@ class Query(SourceExpr):
         source = self.source.packed()
         if isinstance(self.source, Query):
             source = f"({source})"
+        if self.where is not None:
+            where = f" WHERE {self.where.packed()}"
+        else:
+            where = ""
         if self.group_by is not None:
             group_by = f" GROUP BY {', '.join(self.group_by)}"
         else:
             group_by = ""
-        return f"SELECT {self.columns.packed()} FROM {source}{group_by}"
+        return f"SELECT {self.columns.packed()} FROM {source}{where}{group_by}"
 
     @override
     def spacious(self) -> str:
         source = self.source.spacious()
         if isinstance(self.source, Query):
             source = f"(\n{source}\n)"
+        if self.where is not None:
+            where = f"\nWHERE\n{indent(str(self.where))}"
+        else:
+            where = ""
         if self.group_by is not None:
             group_by = f"\nGROUP BY {', '.join(self.group_by)}"
         else:
             group_by = ""
-        return f"SELECT\n{indent(self.columns.spacious())}\nFROM\n{indent(source)}{group_by}"
+        return f"SELECT\n{indent(self.columns.spacious())}\nFROM\n{indent(source)}{where}{group_by}"
