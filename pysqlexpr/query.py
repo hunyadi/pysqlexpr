@@ -199,12 +199,13 @@ class LateralJoin(JoinExpr):
 class Query(SourceExpr):
     "A query or sub-query that yields a table result."
 
-    __slots__ = ("source", "columns", "where", "group_by")
+    __slots__ = ("source", "columns", "where", "group_by", "qualify")
 
     source: SourceExpr
     columns: ColumnList
     where: BoolExpr | None
     group_by: tuple[str, ...] | None
+    qualify: BoolExpr | None
 
     def __init__(
         self,
@@ -213,6 +214,7 @@ class Query(SourceExpr):
         *,
         where: BoolExpr | None = None,
         group_by: Iterable[str] | None = None,
+        qualify: BoolExpr | None = None,
     ) -> None:
         self.source = source
         self.columns = ColumnList(columns)
@@ -221,6 +223,7 @@ class Query(SourceExpr):
             self.group_by = tuple(group_by)
         else:
             self.group_by = None
+        self.qualify = qualify
 
     def __eq__(self, op: object) -> bool:
         return (
@@ -229,10 +232,11 @@ class Query(SourceExpr):
             and self.columns == op.columns
             and self.where == op.where
             and self.group_by == op.group_by
+            and self.qualify == op.qualify
         )
 
     def __hash__(self) -> int:
-        return hash((self.source, self.columns, self.where, self.group_by))
+        return hash((self.source, self.columns, self.where, self.group_by, self.qualify))
 
     @override
     def packed(self) -> str:
@@ -247,7 +251,11 @@ class Query(SourceExpr):
             group_by = f" GROUP BY {', '.join(self.group_by)}"
         else:
             group_by = ""
-        return f"SELECT {self.columns.packed()} FROM {source}{where}{group_by}"
+        if self.qualify is not None:
+            qualify = f" QUALIFY {self.qualify.packed()}"
+        else:
+            qualify = ""
+        return f"SELECT {self.columns.packed()} FROM {source}{where}{group_by}{qualify}"
 
     @override
     def spacious(self) -> str:
@@ -262,4 +270,8 @@ class Query(SourceExpr):
             group_by = f"\nGROUP BY {', '.join(self.group_by)}"
         else:
             group_by = ""
-        return f"SELECT\n{indent(self.columns.spacious())}\nFROM\n{indent(source)}{where}{group_by}"
+        if self.qualify is not None:
+            qualify = f"\nQUALIFY\n{indent(str(self.qualify))}"
+        else:
+            qualify = ""
+        return f"SELECT\n{indent(self.columns.spacious())}\nFROM\n{indent(source)}{where}{group_by}{qualify}"
