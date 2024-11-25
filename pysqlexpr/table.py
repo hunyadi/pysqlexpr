@@ -254,11 +254,25 @@ class Table:
         self.columns = columns
         self.description = description
 
-    def __str__(self) -> str:
+    def as_stmt(self, *, replace: bool = False) -> str:
+        """
+        Emits a SQL statement for creating the table.
+
+        :param replace: True for `CREATE OR REPLACE`. False for `CREATE`.
+        """
+
         definitions = ",\n".join(str(c) for c in self.columns)
         comment = (
             f"\nCOMMENT = {sql_quoted_string(self.description)}"
             if self.description
             else ""
         )
-        return f"CREATE TABLE {self.name} (\n{definitions}\n){comment};"
+        or_replace = " OR REPLACE" if replace else ""
+        return f"CREATE{or_replace} TABLE {self.name} (\n{definitions}\n){comment};"
+
+    def __str__(self) -> str:
+        """
+        Emits a SQL statement for creating the table.
+        """
+
+        return self.as_stmt()
