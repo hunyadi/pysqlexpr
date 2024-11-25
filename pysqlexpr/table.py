@@ -241,24 +241,32 @@ class Column:
 
 
 class Table:
-    __slots__ = ("name", "columns", "description")
+    __slots__ = ("name", "columns", "description", "replace")
 
     name: Identifier
     columns: list[Column]
     description: str | None
+    replace: bool
 
     def __init__(
-        self, name: str, columns: list[Column], *, description: str | None = None
+        self,
+        name: str,
+        columns: list[Column],
+        *,
+        description: str | None = None,
+        replace: bool = False
     ) -> None:
         self.name = Identifier(name)
         self.columns = columns
         self.description = description
+        self.replace = replace
 
     def __str__(self) -> str:
+        create_statement = "CREATE OR REPLACE TABLE" if self.replace else "CREATE TABLE"
         definitions = ",\n".join(str(c) for c in self.columns)
         comment = (
             f"\nCOMMENT = {sql_quoted_string(self.description)}"
             if self.description
             else ""
         )
-        return f"CREATE TABLE {self.name} (\n{definitions}\n){comment};"
+        return f"{create_statement} {self.name} (\n{definitions}\n){comment};"
