@@ -183,7 +183,7 @@ class Column:
     __slots__ = ("name", "data_type", "nullable", "default", "description")
 
     name: Identifier
-    data_type: DataType | type
+    data_type: DataType
     nullable: bool
     default: str | None
     description: str | None
@@ -191,7 +191,7 @@ class Column:
     def __init__(
         self,
         name: str,
-        data_type: DataType | type,
+        data_type: DataType,
         *,
         nullable: bool = True,
         default: str | None = None,
